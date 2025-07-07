@@ -10,3 +10,4 @@ litellm
 asyncpg
 azure-storage-blob
 aiohttp
+azure-ai-agents

@@ -4,9 +4,8 @@ import logging
 from dotenv import load_dotenv
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
-from azure.ai.projects.models import (
-    MessageRole,
-)
+from azure.ai.projects.models import MessageRole
+from azure.ai.agents.models import CodeInterpreterTool
 
 # Load environment variables
 load_dotenv()
@@ -19,10 +18,14 @@ AIPROJECT_CONNECTION_STRING = os.getenv("AIPROJECT_CONNECTION_STRING")
 AGENT_ID = os.getenv("AGENT_ID")
 
 # Create an instance of the AIProjectClient using DefaultAzureCredential
-project_client = AIProjectClient.from_connection_string(
-    conn_str=AIPROJECT_CONNECTION_STRING, credential=DefaultAzureCredential()
+project_client = AIProjectClient(
+    endpoint=os.getenv("AIPROJECT_CONNECTION_STRING"),
+    credential=DefaultAzureCredential()
 )
 
+code_interpreter = CodeInterpreterTool()
+with project_client:
+    agents_client = project_client.agents
 
 # Chainlit setup
 @cl.on_chat_start
@@ -30,7 +33,6 @@ async def on_chat_start():
     # Create a thread for the agent
     if not cl.user_session.get("thread_id"):
         thread = project_client.agents.create_thread()
-
         cl.user_session.set("thread_id", thread.id)
         print(f"New Thread ID: {thread.id}")
 
@@ -48,7 +50,7 @@ async def on_message(message: cl.Message):
             content=message.content,
         )
         
-        # Run the agent to process tne message in the thread
+        # Run the agent to process the message in the thread
         run = project_client.agents.create_and_process_run(thread_id=thread_id, agent_id=AGENT_ID)
         print(f"Run finished with status: {run.status}")
 

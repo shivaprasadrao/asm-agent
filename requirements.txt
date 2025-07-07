@@ -2,3 +2,11 @@ chainlit
 python-dotenv
 azure-ai-projects
 azure-identity
+azure-ai-ml
+markitdown
+openai
+loguru
+litellm
+asyncpg
+azure-storage-blob
+aiohttp

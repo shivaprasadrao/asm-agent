@@ -1,7 +1,8 @@
 chainlit
 python-dotenv
-azure-ai-projects
-azure-identity
+azure-ai-projects==1.0.0b12
+azure-identity==1.12.0
 azure-storage-blob
 aiohttp
-azure-ai-agents
+azure-ai-agents==1.0.2
+azure-ai-ml==1.26.0

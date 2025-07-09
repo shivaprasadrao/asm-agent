@@ -1,13 +1,7 @@
 chainlit
 python-dotenv
-azure-ai-projects == 1.0.0b10
+azure-ai-projects
 azure-identity
-azure-ai-ml
-markitdown
-openai
-loguru
-litellm
-asyncpg
 azure-storage-blob
 aiohttp
 azure-ai-agents

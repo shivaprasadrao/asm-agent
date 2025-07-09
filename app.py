@@ -6,10 +6,10 @@ from azure.identity import DefaultAzureCredential
 from azure.ai.agents.models import ListSortOrder
 
 # Load environment variables if needed
-load_dotenv("sample.env")
+load_dotenv()
 
-PROJECT_ENDPOINT = os.getenv("PROJECT_ENDPOINT")  # e.g. "https://aif-amyaifoundry.services.ai.azure.com/api/projects/firstProject"
-AGENT_ID = os.getenv("AGENT_ID")  # e.g. "asst_HkPiz9n1tnB9VHJ7YckpGW76"
+PROJECT_ENDPOINT = os.getenv("PROJECT_ENDPOINT")  
+AGENT_ID = os.getenv("AGENT_ID")  
 
 project = AIProjectClient(
     credential=DefaultAzureCredential(),

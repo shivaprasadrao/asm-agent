@@ -1,77 +1,65 @@
 import os
 import chainlit as cl
-import logging
 from dotenv import load_dotenv
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
-from azure.ai.projects.models import MessageRole
-from azure.ai.agents.models import CodeInterpreterTool
+from azure.ai.agents.models import ListSortOrder
 
-# Load environment variables
-load_dotenv()
+# Load environment variables if needed
+load_dotenv("sample.env")
 
-# Disable verbose connection logs
-logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy")
-logger.setLevel(logging.WARNING)
+PROJECT_ENDPOINT = os.getenv("PROJECT_ENDPOINT")  # e.g. "https://aif-amyaifoundry.services.ai.azure.com/api/projects/firstProject"
+AGENT_ID = os.getenv("AGENT_ID")  # e.g. "asst_HkPiz9n1tnB9VHJ7YckpGW76"
 
-AIPROJECT_CONNECTION_STRING = os.getenv("AIPROJECT_CONNECTION_STRING")
-AGENT_ID = os.getenv("AGENT_ID")
-
-# Create an instance of the AIProjectClient using DefaultAzureCredential
-project_client = AIProjectClient(
-    endpoint=os.getenv("AIPROJECT_CONNECTION_STRING"),
-    credential=DefaultAzureCredential()
+project = AIProjectClient(
+    credential=DefaultAzureCredential(),
+    endpoint=PROJECT_ENDPOINT
 )
 
-code_interpreter = CodeInterpreterTool()
-with project_client:
-    agents_client = project_client.agents
+agent = project.agents.get_agent(AGENT_ID)
 
-# Chainlit setup
 @cl.on_chat_start
 async def on_chat_start():
-    # Create a thread for the agent
-    if not cl.user_session.get("thread_id"):
-        thread = project_client.agents.create_thread()
-        cl.user_session.set("thread_id", thread.id)
-        print(f"New Thread ID: {thread.id}")
+    thread = project.agents.threads.create()
+    cl.user_session.set("thread_id", thread.id)
+    print(f"Created thread, ID: {thread.id}")
 
 @cl.on_message
 async def on_message(message: cl.Message):
     thread_id = cl.user_session.get("thread_id")
-    
     try:
-        # Show thinking message to user
-        msg = await cl.Message("thinking...", author="agent").send()
+        # Show "thinking..." message
+        thinking_msg = await cl.Message("thinking...", author="agent").send()
 
-        project_client.agents.create_message(
+        # Add user message to the thread
+        project.agents.messages.create(
             thread_id=thread_id,
             role="user",
-            content=message.content,
+            content=message.content
         )
-        
-        # Run the agent to process the message in the thread
-        run = project_client.agents.create_and_process_run(thread_id=thread_id, agent_id=AGENT_ID)
-        print(f"Run finished with status: {run.status}")
 
-        # Check if you got "Rate limit is exceeded.", then you want to increase the token limit
+        # Run the agent and wait for completion
+        run = project.agents.runs.create_and_process(
+            thread_id=thread_id,
+            agent_id=agent.id
+        )
+
         if run.status == "failed":
-            raise Exception(run.last_error)
+            await cl.Message(content=f"Run failed: {run.last_error}").send()
+            return
 
-        # Get all messages from the thread
-        messages = project_client.agents.list_messages(thread_id)
+        # Get all messages in the thread
+        messages = project.agents.messages.list(thread_id=thread_id, order=ListSortOrder.ASCENDING)
 
-        # Get the last message from the agent
-        last_msg = messages.get_last_text_message_by_role(MessageRole.AGENT)
-        if not last_msg:
-            raise Exception("No response from the model.")
+        # Find the last assistant message with text
+        last_response = ""
+        for msg in reversed(list(messages)):
+            if msg.role == "assistant" and getattr(msg, "text_messages", None):
+                last_response = msg.text_messages[-1].text.value
+                break
 
-        msg.content = last_msg.text.value
-        await msg.update()
+        thinking_msg.content = last_response if last_response else "No response from the model."
+        await thinking_msg.update()
 
     except Exception as e:
         await cl.Message(content=f"Error: {str(e)}").send()
-
-if __name__ == "__main__":
-    # Chainlit will automatically run the application
-    pass

@@ -6,3 +6,6 @@ azure-storage-blob
 aiohttp
 azure-ai-agents==1.0.2
 azure-ai-ml==1.26.0
+opentelemetry-api==1.12.0
+opentelemetry-sdk==1.12.0
+opentelemetry-exporter-otlp==1.12.0
